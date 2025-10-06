@@ -14,8 +14,24 @@ export default function InternDetail() {
   });
 
   const { mutate: startThread, isPending, error } = useMutation({
-    mutationFn: async () => (await api.post('/api/threads', { intern_id: Number(id) })).data,
-    onSuccess: (t) => router.push(`/threads/${t.id}`),
+    mutationFn: async () => {
+      const response = await api.post('/api/threads', { intern_id: Number(id) });
+      console.log('Thread creation response:', response.data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      console.log('Thread created successfully:', data);
+      // Railsのレスポンス形式に応じて調整
+      const threadId = data.id || data.thread?.id || data.data?.id;
+      if (threadId) {
+        router.push(`/threads/${threadId}`);
+      } else {
+        console.error('Thread ID not found in response:', data);
+      }
+    },
+    onError: (error) => {
+      console.error('Thread creation failed:', error);
+    },
   });
 
   return (
@@ -36,7 +52,14 @@ export default function InternDetail() {
       >
         {isPending ? '作成中…' : 'DMを開始'}
       </button>
-      {error && <p className="text-red-600 text-sm">作成に失敗しました</p>}
+      {error && (
+        <div className="text-red-600 text-sm">
+          <p>作成に失敗しました</p>
+          <p className="text-xs mt-1">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
+      )}
     </main>
   );
 }
